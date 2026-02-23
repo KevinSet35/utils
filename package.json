@@ -1,0 +1,48 @@
+{
+  "name": "@kevinsetayesh/utils",
+  "version": "1.0.0",
+  "description": "A collection of reusable TypeScript utility functions shared across projects.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KevinSet35/utils.git"
+  },
+  "keywords": [
+    "utils",
+    "utilities",
+    "typescript",
+    "helpers"
+  ],
+  "author": "kevinsetayesh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KevinSet35/utils/issues"
+  },
+  "homepage": "https://github.com/KevinSet35/utils#readme",
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
