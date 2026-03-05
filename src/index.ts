@@ -1,5 +1,10 @@
 // Export your utility functions, types, and classes here
-export { DateUtils } from './DateUtils.js';
+export {
+    DateUtils
+} from './DateUtils.js';
+export type {
+    NormalizedDateRangeUTC,
+} from './DateUtils.js';
 export {
     FileUtils,
     FileType,

@@ -1,3 +1,8 @@
+export interface NormalizedDateRangeUTC {
+    normalizedStartDate?: string;
+    normalizedEndDate?: string;
+};
+
 /**
  * Common date/time utilities for the server.
  */
@@ -154,4 +159,47 @@ export class DateUtils {
 
         return isFuture ? `in ${label}` : `${label} ago`;
     }
+
+
+    /**
+     * Normalize optional date range inputs for timestamp filtering (UTC-safe).
+     * - Date-only strings (YYYY-MM-DD) are expanded to full UTC day boundaries.
+     * - Full ISO/timestamp strings are preserved as-is.
+     * - Date objects are converted to ISO strings.
+     */
+    static normalizeDateRangeUTC(
+        startDate?: Date | string | null,
+        endDate?: Date | string | null,
+    ): NormalizedDateRangeUTC {
+        const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+        const normalize = (
+            value: Date | string | null | undefined,
+            boundary: 'start' | 'end',
+        ): string | undefined => {
+            if (value == null) return undefined;
+
+            if (value instanceof Date) {
+                if (Number.isNaN(value.getTime())) return undefined;
+                return value.toISOString();
+            }
+
+            const trimmed = value.trim();
+            if (!trimmed) return undefined;
+
+            if (DATE_ONLY_PATTERN.test(trimmed)) {
+                return boundary === 'start'
+                    ? `${trimmed}T00:00:00.000Z`
+                    : `${trimmed}T23:59:59.999Z`;
+            }
+
+            return trimmed;
+        };
+
+        return {
+            normalizedStartDate: normalize(startDate, 'start'),
+            normalizedEndDate: normalize(endDate, 'end'),
+        };
+    }
+
 }
