@@ -3,13 +3,24 @@ import {
     FileUtils,
     FileType,
     FileContentCategory,
+    MediaCategory,
     IMAGE_FILE_TYPES,
     DOCUMENT_FILE_TYPES,
     TEXT_FILE_TYPES,
     ALL_FILE_TYPES,
+    VIDEO_FILE_TYPES,
+    AUDIO_FILE_TYPES,
+    ALL_MEDIA_FILE_TYPES,
     FILE_TYPE_EXTENSIONS,
+    EXTENSION_TO_MIME,
+    MIME_TO_EXTENSION,
+    EXTENSION_TO_SUBDIRECTORY,
     getAcceptedTypesRecord,
 } from '../src/FileUtils.js';
+
+// ============================================================================
+// Existing tests (backwards compatibility)
+// ============================================================================
 
 describe('FileType constants', () => {
     it('IMAGE_FILE_TYPES contains all image types', () => {
@@ -164,8 +175,8 @@ describe('FileUtils', () => {
         });
 
         it('handles unicode characters', () => {
-            const base64 = Buffer.from('Caf\u00e9 \u2615').toString('base64');
-            expect(FileUtils.decodeBase64Text(base64)).toBe('Caf\u00e9 \u2615');
+            const base64 = Buffer.from('Café ☕').toString('base64');
+            expect(FileUtils.decodeBase64Text(base64)).toBe('Café ☕');
         });
 
         it('handles empty string', () => {
@@ -274,5 +285,344 @@ describe('FileUtils', () => {
         it('returns FILE when no subtype is extractable', () => {
             expect(FileUtils.getFileTypeLabel('')).toBe('FILE');
         });
+    });
+});
+
+// ============================================================================
+// New tests (v1.1+ additions)
+// ============================================================================
+
+describe('New FileType enum values', () => {
+    it('includes video types', () => {
+        expect(FileType.VIDEO_MP4).toBe('video/mp4');
+        expect(FileType.VIDEO_WEBM).toBe('video/webm');
+    });
+
+    it('includes audio types', () => {
+        expect(FileType.AUDIO_MPEG).toBe('audio/mpeg');
+        expect(FileType.AUDIO_WAV).toBe('audio/wav');
+    });
+});
+
+describe('New file type groups', () => {
+    it('VIDEO_FILE_TYPES contains video types', () => {
+        expect(VIDEO_FILE_TYPES).toEqual([FileType.VIDEO_MP4, FileType.VIDEO_WEBM]);
+    });
+
+    it('AUDIO_FILE_TYPES contains audio types', () => {
+        expect(AUDIO_FILE_TYPES).toEqual([FileType.AUDIO_MPEG, FileType.AUDIO_WAV]);
+    });
+
+    it('ALL_MEDIA_FILE_TYPES is the superset of all types', () => {
+        expect(ALL_MEDIA_FILE_TYPES).toEqual([
+            ...IMAGE_FILE_TYPES,
+            ...VIDEO_FILE_TYPES,
+            ...AUDIO_FILE_TYPES,
+            ...DOCUMENT_FILE_TYPES,
+            ...TEXT_FILE_TYPES,
+        ]);
+    });
+
+    it('FILE_TYPE_EXTENSIONS includes video and audio types', () => {
+        expect(FILE_TYPE_EXTENSIONS[FileType.VIDEO_MP4]).toEqual(['.mp4']);
+        expect(FILE_TYPE_EXTENSIONS[FileType.VIDEO_WEBM]).toEqual(['.webm']);
+        expect(FILE_TYPE_EXTENSIONS[FileType.AUDIO_MPEG]).toEqual(['.mp3']);
+        expect(FILE_TYPE_EXTENSIONS[FileType.AUDIO_WAV]).toEqual(['.wav']);
+    });
+});
+
+describe('MediaCategory enum', () => {
+    it('has all expected values', () => {
+        expect(MediaCategory.IMAGE).toBe('image');
+        expect(MediaCategory.VIDEO).toBe('video');
+        expect(MediaCategory.AUDIO).toBe('audio');
+        expect(MediaCategory.DOCUMENT).toBe('document');
+        expect(MediaCategory.TEXT).toBe('text');
+    });
+});
+
+describe('EXTENSION_TO_MIME', () => {
+    it('maps common extensions to MIME types', () => {
+        expect(EXTENSION_TO_MIME['.png']).toBe('image/png');
+        expect(EXTENSION_TO_MIME['.jpg']).toBe('image/jpeg');
+        expect(EXTENSION_TO_MIME['.jpeg']).toBe('image/jpeg');
+        expect(EXTENSION_TO_MIME['.mp4']).toBe('video/mp4');
+        expect(EXTENSION_TO_MIME['.mp3']).toBe('audio/mpeg');
+        expect(EXTENSION_TO_MIME['.wav']).toBe('audio/wav');
+        expect(EXTENSION_TO_MIME['.webm']).toBe('video/webm');
+    });
+});
+
+describe('MIME_TO_EXTENSION', () => {
+    it('maps MIME types to canonical extensions', () => {
+        expect(MIME_TO_EXTENSION['image/jpeg']).toBe('.jpg');
+        expect(MIME_TO_EXTENSION['video/mp4']).toBe('.mp4');
+        expect(MIME_TO_EXTENSION['audio/mpeg']).toBe('.mp3');
+    });
+});
+
+describe('EXTENSION_TO_SUBDIRECTORY', () => {
+    it('maps image extensions to images', () => {
+        expect(EXTENSION_TO_SUBDIRECTORY['.png']).toBe('images');
+        expect(EXTENSION_TO_SUBDIRECTORY['.jpg']).toBe('images');
+        expect(EXTENSION_TO_SUBDIRECTORY['.webp']).toBe('images');
+    });
+
+    it('maps video extensions to videos', () => {
+        expect(EXTENSION_TO_SUBDIRECTORY['.mp4']).toBe('videos');
+        expect(EXTENSION_TO_SUBDIRECTORY['.webm']).toBe('videos');
+    });
+
+    it('maps audio extensions to audio', () => {
+        expect(EXTENSION_TO_SUBDIRECTORY['.mp3']).toBe('audio');
+        expect(EXTENSION_TO_SUBDIRECTORY['.wav']).toBe('audio');
+    });
+});
+
+describe('FileUtils - new video/audio methods', () => {
+    describe('isVideoType', () => {
+        it('returns true for video MIME types', () => {
+            expect(FileUtils.isVideoType('video/mp4')).toBe(true);
+            expect(FileUtils.isVideoType('video/webm')).toBe(true);
+        });
+
+        it('returns false for non-video types', () => {
+            expect(FileUtils.isVideoType('image/png')).toBe(false);
+            expect(FileUtils.isVideoType('audio/mpeg')).toBe(false);
+        });
+    });
+
+    describe('isAudioType', () => {
+        it('returns true for audio MIME types', () => {
+            expect(FileUtils.isAudioType('audio/mpeg')).toBe(true);
+            expect(FileUtils.isAudioType('audio/wav')).toBe(true);
+        });
+
+        it('returns false for non-audio types', () => {
+            expect(FileUtils.isAudioType('video/mp4')).toBe(false);
+            expect(FileUtils.isAudioType('image/png')).toBe(false);
+        });
+    });
+
+    describe('isKnownMediaType', () => {
+        it('returns true for all known media types', () => {
+            for (const ft of ALL_MEDIA_FILE_TYPES) {
+                expect(FileUtils.isKnownMediaType(ft)).toBe(true);
+            }
+        });
+
+        it('returns false for unknown types', () => {
+            expect(FileUtils.isKnownMediaType('application/json')).toBe(false);
+        });
+    });
+
+    describe('getMediaCategory', () => {
+        it('returns correct category for each type', () => {
+            expect(FileUtils.getMediaCategory('image/png')).toBe(MediaCategory.IMAGE);
+            expect(FileUtils.getMediaCategory('video/mp4')).toBe(MediaCategory.VIDEO);
+            expect(FileUtils.getMediaCategory('audio/mpeg')).toBe(MediaCategory.AUDIO);
+            expect(FileUtils.getMediaCategory('application/pdf')).toBe(MediaCategory.DOCUMENT);
+            expect(FileUtils.getMediaCategory('text/plain')).toBe(MediaCategory.TEXT);
+        });
+
+        it('returns null for unknown types', () => {
+            expect(FileUtils.getMediaCategory('application/json')).toBeNull();
+        });
+    });
+});
+
+describe('FileUtils - MIME/extension helpers', () => {
+    describe('getMimeTypeFromExtension', () => {
+        it('returns correct MIME type for known extensions', () => {
+            expect(FileUtils.getMimeTypeFromExtension('.png')).toBe('image/png');
+            expect(FileUtils.getMimeTypeFromExtension('.jpg')).toBe('image/jpeg');
+            expect(FileUtils.getMimeTypeFromExtension('.mp4')).toBe('video/mp4');
+            expect(FileUtils.getMimeTypeFromExtension('.mp3')).toBe('audio/mpeg');
+            expect(FileUtils.getMimeTypeFromExtension('.wav')).toBe('audio/wav');
+        });
+
+        it('is case-insensitive', () => {
+            expect(FileUtils.getMimeTypeFromExtension('.PNG')).toBe('image/png');
+            expect(FileUtils.getMimeTypeFromExtension('.MP4')).toBe('video/mp4');
+        });
+
+        it('returns application/octet-stream for unknown extensions', () => {
+            expect(FileUtils.getMimeTypeFromExtension('.xyz')).toBe('application/octet-stream');
+            expect(FileUtils.getMimeTypeFromExtension('.bin')).toBe('application/octet-stream');
+        });
+    });
+
+    describe('getMimeTypeFromPath', () => {
+        it('extracts extension from path and returns MIME type', () => {
+            expect(FileUtils.getMimeTypeFromPath('/path/to/file.png')).toBe('image/png');
+            expect(FileUtils.getMimeTypeFromPath('/some/video.mp4')).toBe('video/mp4');
+            expect(FileUtils.getMimeTypeFromPath('audio.wav')).toBe('audio/wav');
+        });
+
+        it('returns application/octet-stream for no extension', () => {
+            expect(FileUtils.getMimeTypeFromPath('/path/to/file')).toBe('application/octet-stream');
+        });
+    });
+
+    describe('getExtensionFromMimeType', () => {
+        it('returns canonical extension for known MIME types', () => {
+            expect(FileUtils.getExtensionFromMimeType('image/jpeg')).toBe('.jpg');
+            expect(FileUtils.getExtensionFromMimeType('video/mp4')).toBe('.mp4');
+            expect(FileUtils.getExtensionFromMimeType('audio/mpeg')).toBe('.mp3');
+        });
+
+        it('returns null for unknown MIME types', () => {
+            expect(FileUtils.getExtensionFromMimeType('application/json')).toBeNull();
+        });
+    });
+
+    describe('getStorageSubdirectory', () => {
+        it('maps image extensions to images', () => {
+            expect(FileUtils.getStorageSubdirectory('.png')).toBe('images');
+            expect(FileUtils.getStorageSubdirectory('.jpg')).toBe('images');
+            expect(FileUtils.getStorageSubdirectory('.webp')).toBe('images');
+        });
+
+        it('maps video extensions to videos', () => {
+            expect(FileUtils.getStorageSubdirectory('.mp4')).toBe('videos');
+            expect(FileUtils.getStorageSubdirectory('.webm')).toBe('videos');
+        });
+
+        it('maps audio extensions to audio', () => {
+            expect(FileUtils.getStorageSubdirectory('.mp3')).toBe('audio');
+            expect(FileUtils.getStorageSubdirectory('.wav')).toBe('audio');
+        });
+
+        it('returns files for unknown extensions', () => {
+            expect(FileUtils.getStorageSubdirectory('.xyz')).toBe('files');
+        });
+
+        it('is case-insensitive', () => {
+            expect(FileUtils.getStorageSubdirectory('.PNG')).toBe('images');
+        });
+    });
+
+    describe('getStorageSubdirectoryFromPath', () => {
+        it('returns correct subdirectory from file path', () => {
+            expect(FileUtils.getStorageSubdirectoryFromPath('/path/to/photo.png')).toBe('images');
+            expect(FileUtils.getStorageSubdirectoryFromPath('/path/to/clip.mp4')).toBe('videos');
+            expect(FileUtils.getStorageSubdirectoryFromPath('/path/to/voice.mp3')).toBe('audio');
+        });
+
+        it('returns files for paths without extension', () => {
+            expect(FileUtils.getStorageSubdirectoryFromPath('/path/to/file')).toBe('files');
+        });
+    });
+});
+
+describe('FileUtils - path helpers', () => {
+    describe('extractExtension', () => {
+        it('extracts extension with dot', () => {
+            expect(FileUtils.extractExtension('file.png')).toBe('.png');
+            expect(FileUtils.extractExtension('/path/to/video.mp4')).toBe('.mp4');
+        });
+
+        it('lowercases the extension', () => {
+            expect(FileUtils.extractExtension('FILE.PNG')).toBe('.png');
+        });
+
+        it('returns null for no extension', () => {
+            expect(FileUtils.extractExtension('noext')).toBeNull();
+            expect(FileUtils.extractExtension('/path/to/file')).toBeNull();
+        });
+
+        it('returns null for dot at end', () => {
+            expect(FileUtils.extractExtension('file.')).toBeNull();
+        });
+    });
+
+    describe('extractFilename', () => {
+        it('extracts filename from path with forward slashes', () => {
+            expect(FileUtils.extractFilename('/path/to/file.png')).toBe('file.png');
+        });
+
+        it('extracts filename from path with backslashes', () => {
+            expect(FileUtils.extractFilename('C:\\Users\\test\\file.png')).toBe('file.png');
+        });
+
+        it('returns the string itself if no slashes', () => {
+            expect(FileUtils.extractFilename('file.png')).toBe('file.png');
+        });
+    });
+
+    describe('toOutputUrl', () => {
+        it('converts absolute path to output URL', () => {
+            expect(FileUtils.toOutputUrl(
+                '/Users/app/outputs/images/photo.png',
+                '/Users/app/outputs',
+            )).toBe('/outputs/images/photo.png');
+        });
+
+        it('handles trailing slash in outputDir', () => {
+            expect(FileUtils.toOutputUrl(
+                '/app/outputs/videos/clip.mp4',
+                '/app/outputs/',
+            )).toBe('/outputs/videos/clip.mp4');
+        });
+
+        it('falls back to just filename if path is not under outputDir', () => {
+            expect(FileUtils.toOutputUrl(
+                '/other/path/file.png',
+                '/app/outputs',
+            )).toBe('/outputs/file.png');
+        });
+    });
+
+    describe('fromOutputUrl', () => {
+        it('converts output URL to absolute path', () => {
+            expect(FileUtils.fromOutputUrl(
+                '/outputs/images/photo.png',
+                '/Users/app/outputs',
+            )).toBe('/Users/app/outputs/images/photo.png');
+        });
+
+        it('handles trailing slash in outputDir', () => {
+            expect(FileUtils.fromOutputUrl(
+                '/outputs/videos/clip.mp4',
+                '/app/outputs/',
+            )).toBe('/app/outputs/videos/clip.mp4');
+        });
+    });
+
+    describe('buildStorageKey', () => {
+        it('builds key with correct subdirectory', () => {
+            expect(FileUtils.buildStorageKey('/path/to/image.png')).toBe('images/image.png');
+            expect(FileUtils.buildStorageKey('/path/to/video.mp4')).toBe('videos/video.mp4');
+            expect(FileUtils.buildStorageKey('/path/to/audio.mp3')).toBe('audio/audio.mp3');
+            expect(FileUtils.buildStorageKey('/path/to/data.bin')).toBe('files/data.bin');
+        });
+    });
+
+    describe('buildGenerationKey', () => {
+        it('builds namespaced key', () => {
+            expect(FileUtils.buildGenerationKey('run-123', 'source_image', 'photo.png'))
+                .toBe('generations/run-123/source_image/photo.png');
+        });
+    });
+
+    describe('buildOutputPath', () => {
+        it('builds full output path', () => {
+            expect(FileUtils.buildOutputPath('/app/outputs', 'images', 'abc.png'))
+                .toBe('/app/outputs/images/abc.png');
+        });
+
+        it('handles trailing slash in outputDir', () => {
+            expect(FileUtils.buildOutputPath('/app/outputs/', 'videos', 'clip.mp4'))
+                .toBe('/app/outputs/videos/clip.mp4');
+        });
+    });
+});
+
+describe('FileUtils - labels for new types', () => {
+    it('returns labels for video and audio types', () => {
+        expect(FileUtils.getFileTypeLabel('video/mp4')).toBe('MP4');
+        expect(FileUtils.getFileTypeLabel('video/webm')).toBe('WebM');
+        expect(FileUtils.getFileTypeLabel('audio/mpeg')).toBe('MP3');
+        expect(FileUtils.getFileTypeLabel('audio/wav')).toBe('WAV');
     });
 });
