@@ -1,6 +1,6 @@
 {
     "name": "@kevinsetayesh/utils",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "A collection of reusable TypeScript utility functions shared across projects.",
     "type": "module",
     "main": "./dist/index.cjs",
@@ -40,9 +40,10 @@
     },
     "homepage": "https://github.com/KevinSet35/utils#readme",
     "peerDependencies": {
-        "@nestjs/common": "^11.1.9"
+        "@nestjs/common": ">=10.0.0"
     },
     "devDependencies": {
+        "@nestjs/common": "^11.1.9",
         "@types/node": "^25.3.0",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
