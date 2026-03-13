@@ -32,3 +32,5 @@ export type {
 export { FileIOUtils } from './FileIOUtils.js';
 export type { DownloadResult, FileMetadata } from './FileIOUtils.js';
 export { ComparisonUtil } from './ComparisonUtil.js';
+export { RepositoryUtil, SupabaseErrorCode } from './RepositoryUtils.js';
+export type { SupabaseError } from './RepositoryUtils.js';
